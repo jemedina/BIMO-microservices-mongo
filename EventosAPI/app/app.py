@@ -1,13 +1,14 @@
 from app.config import GlobalConfiguration
 from flask import Flask, jsonify
 from flaskext.mysql import MySQL
+from flask_pymongo import PyMongo
 import time
 
 flaskapp = Flask(__name__)
 mysql = MySQL()
 
 ''' routes '''
-
+'''
 def executeQuery(sql):
     try:
         conn = mysql.connect()
@@ -22,18 +23,24 @@ def executeQuery(sql):
         conn.close()
 
     return result
-
+'''
 
 def start():
     config = GlobalConfiguration()
-    flaskapp.config['MYSQL_DATABASE_USER'] = config.DATABASE_USER
-    flaskapp.config['MYSQL_DATABASE_PASSWORD'] = config.DATABASE_PASSWD
-    flaskapp.config['MYSQL_DATABASE_DB'] = config.DATABASE_NAME
-    flaskapp.config['MYSQL_DATABASE_HOST'] = config.DATABASE_HOST
-    mysql.init_app(flaskapp)
+
+    flaskapp.config['MONGO_DBNAME'] = 'prueba_db'
+    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/prueba_db'
+    global mongo 
+    mongo = PyMongo(flaskapp, config_prefix='MONGO')
 
     print("Initializing application!")
     flaskapp.run(host='0.0.0.0',port=5000)
+
+
+@flaskapp.route('/')
+def home_page():
+     mongo.db.colecciondeprueba.insert({'funcionando': True})
+     return "OK"
 
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
