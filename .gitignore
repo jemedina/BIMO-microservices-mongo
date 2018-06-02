@@ -1,6 +1,5 @@
 PromosAPI/app/config/config.cfg
 EventosAPI/app/config/config.cfg
 CajonesAPI/app/config/config.cfg
-CajonesAPI/*
 *__pycache__*
 .vscode/
