@@ -42,6 +42,14 @@ def home_page():
      mongo.db.colecciondeprueba.insert({'funcionando': True})
      return "OK"
 
+@app.route('/star', methods=['GET'])
+def get_all_stars():
+  star = mongo.db.colecciondeprueba
+  output = []
+  for s in star.find():
+    output.append({'funcionando' : s['funcionando']})
+  return jsonify({'result' : output})
+
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
     funcionesResult = executeQuery('''SELECT precio FROM asiento WHERE num_asiento = {}'''.format(num_asiento),''' and folio = {}'''.format(folio),''' and fecha = {}'''.format(fecha),''' and hora = {}'''.format(hora),''' and seccion = {}'''.format(seccion))
