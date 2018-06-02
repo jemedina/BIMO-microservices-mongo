@@ -2,6 +2,7 @@ from app.config import GlobalConfiguration
 from flask import Flask, jsonify
 from flaskext.mysql import MySQL
 from flask_pymongo import PyMongo
+from datetime import datetime
 import time
 
 flaskapp = Flask(__name__)
@@ -28,27 +29,14 @@ def executeQuery(sql):
 def start():
     config = GlobalConfiguration()
 
-    flaskapp.config['MONGO_DBNAME'] = 'prueba_db'
-    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/prueba_db'
+    flaskapp.config['MONGO_DBNAME'] = 'bimo'
+    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/bimo'
     global mongo 
     mongo = PyMongo(flaskapp, config_prefix='MONGO')
 
     print("Initializing application!")
     flaskapp.run(host='0.0.0.0',port=5000)
 
-
-@flaskapp.route('/')
-def home_page():
-     mongo.db.colecciondeprueba.insert({'funcionando': True})
-     return "OK"
-
-@app.route('/star', methods=['GET'])
-def get_all_stars():
-  star = mongo.db.colecciondeprueba
-  output = []
-  for s in star.find():
-    output.append({'funcionando' : s['funcionando']})
-  return jsonify({'result' : output})
 
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
@@ -113,13 +101,10 @@ def all_seats_by_section(id_funcion, seccion):
 
 @flaskapp.route('/funciones/datos_eventos/<folio>')
 def events_data(folio):
-    funcionesResult = executeQuery('''SELECT * FROM evento inner join precios_evento on evento.folio = precios_evento.folio_evento AND evento.folio = {}'''.format(folio))
+    eventos = mongo.db.evento
     funciones = []
-    for funcion in funcionesResult:
-        funciones.append(buildEventsReponse(funcion))
-    funcionesHorarios = executeQuery('''SELECT * FROM funcion WHERE folio = {}'''.format(folio))
-    for horario in funcionesHorarios:
-        appendHorariosToFunciones(funciones, horario)
+    for funcion in eventos.find({'folio': int(folio)}):
+        funciones.append(buildEventsReponse(funcion))    
     print(funciones)
     return jsonify(funciones)
 
@@ -190,10 +175,16 @@ def appendHorariosToFunciones(funciones, horario):
                 'fecha':str(horario[2]),
                 'hora':str(horario[3])
                 })
-			
+def formatearFecha(f):
+    return "{:%d/%m/%Y}".format(f)
+
 def buildEventsReponse(events):
-    evento = {
-        'folio': events['folio'],
+    funciones = []
+    for fun in events['funciones']: 
+        funciones.append({'id_funcion':int(fun['id']), 'fecha':formatearFecha(fun['fecha']), 'hora': fun['hora']})
+	
+    return {
+        'folio': int(events['folio']),
         'nombre': events['nombre'],
         'artistas': events['artistas'],
         'descripcion': events['descripcion'],
@@ -202,7 +193,8 @@ def buildEventsReponse(events):
             'top': events['precios']['top'],
             'mid': events['precios']['mid'],
             'low': events['precios']['low']				
-		}
+		},
+        'funciones': funciones
     } 
 
 def buildMetasReponse(events):
