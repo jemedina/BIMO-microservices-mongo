@@ -144,7 +144,7 @@ def guardarReservacion(funcion_id,folio_artista,seccion,asientos,cardNumber,card
 
 @flaskapp.route('/funciones/all')
 def all_events():
-    eventos = mongo.db.eventos
+    eventos = mongo.db.evento
     funciones = []
     for funcion in eventos.find():
         funciones.append(buildEventsReponse(funcion))
