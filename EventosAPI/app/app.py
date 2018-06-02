@@ -144,13 +144,10 @@ def guardarReservacion(funcion_id,folio_artista,seccion,asientos,cardNumber,card
 
 @flaskapp.route('/funciones/all')
 def all_events():
-    funcionesResult = executeQuery('''SELECT * FROM evento inner join precios_evento on evento.folio = precios_evento.folio_evento''')
+    eventos = mongo.db.eventos
     funciones = []
-    for funcion in funcionesResult:
+    for funcion in eventos.find():
         funciones.append(buildEventsReponse(funcion))
-    funcionesHorarios = executeQuery('''SELECT * FROM funcion''')
-    for horario in funcionesHorarios:
-        appendHorariosToFunciones(funciones, horario)
     print(funciones)
     return jsonify(funciones)
 
@@ -187,16 +184,16 @@ def appendHorariosToFunciones(funciones, horario):
                 })
 			
 def buildEventsReponse(events):
-    return {
-        'folio': events[0],
-        'nombre': events[1],
-        'artistas': events[2],
-        'descripcion': events[3],
-        'imgurl': events[4],
+    evento = {
+        'folio': events['folio'],
+        'nombre': events['nombre'],
+        'artistas': events['artistas'],
+        'descripcion': events['descripcion'],
+        'imgurl': events['imgurl'],
         'precios': {
-            'top': events[6],
-            'mid': events[7],
-            'low': events[8]				
+            'top': events['precios']['top'],
+            'mid': events['precios']['mid'],
+            'low': events['precios']['low']				
 		}
     } 
 
