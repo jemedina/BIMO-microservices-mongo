@@ -11,13 +11,13 @@ mysql = MySQL()
 def start():
     config = GlobalConfiguration()
 
-    flaskapp.config['MONGO_DBNAME'] = 'cajones_db'
-    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/cajones_db'
+    flaskapp.config['MONGO_DBNAME'] = 'bimo'
+    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/bimo'
     global mongo 
     mongo = PyMongo(flaskapp, config_prefix='MONGO')
 
     print("Initializing application!")
-    flaskapp.run(host='0.0.0.0',port=5000) 
+    flaskapp.run(host='0.0.0.0',port=5002) 
 
 def executeQuery(sql):
     try:
@@ -93,7 +93,7 @@ def cajones_por_titular(no_tarjeta):
 @flaskapp.route('/cajones/add/<id_funcion>/<no_tarjeta>/<num_cajon>')
 def promo_add_titular(id_funcion, no_tarjeta, num_cajon):
     parking = mongo.db.estacionamiento
-    mongo.db.estacionamiento.insert({"no_tarjeta":no_tarjeta,"id_funcion":id_funcion,"num_cajon":num_cajon})
+    mongo.db.estacionamiento.insert({"no_tarjeta":no_tarjeta,"id_funcion":int(id_funcion),"num_cajon":int(num_cajon)})
     return 'OK'    
     
 '''def start():

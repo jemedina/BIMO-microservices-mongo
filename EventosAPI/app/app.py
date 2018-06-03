@@ -38,6 +38,11 @@ def start():
     flaskapp.run(host='0.0.0.0',port=5000)
 
 
+@flaskapp.after_request
+def apply_caching(response):
+    response.headers["Access-Control-Allow-Origin'"] = "*"
+    return response
+
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
     funcionesResult = executeQuery('''SELECT precio FROM asiento WHERE num_asiento = {}'''.format(num_asiento),''' and folio = {}'''.format(folio),''' and fecha = {}'''.format(fecha),''' and hora = {}'''.format(hora),''' and seccion = {}'''.format(seccion))
@@ -59,7 +64,9 @@ def reserved_seats_by_section(seccion, folio, fecha, hora):
     for func in funcionesResult:
         funciones.append(buildSeatsReponse(func))
     return jsonify(funciones)
-
+@flaskapp.route('/favicon.ico')
+def nofavicon():
+    return ""
 def buildSeatsReponse(seat):
     return {
         'id_funcion': seat['id_funcion'],
@@ -210,7 +217,7 @@ def formatearFecha(f):
 def buildEventsReponse(events):
     funciones = []
     for fun in events['funciones']: 
-        funciones.append({'id_funcion':int(fun['id']), 'fecha':formatearFecha(fun['fecha']), 'hora': fun['hora']})
+        funciones.append({'id':int(fun['id']), 'fecha':formatearFecha(fun['fecha']), 'hora': fun['hora']})
 	
     return {
         'folio': int(events['folio']),
