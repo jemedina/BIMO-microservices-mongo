@@ -62,41 +62,39 @@ def reserved_seats_by_section(seccion, folio, fecha, hora):
 
 def buildSeatsReponse(seat):
     return {
-        'id_funcion': seat[0],
-        'asientos': seat[1],
-        'titular': seat[2],
-        'seccion': seat[3],
-        'fecha': str(seat[4]),
-        'hora': str(seat[5]), 
-        'total': seat[6]
+        'id_funcion': seat['id_funcion'],
+        'asientos': seat['asientos'],
+        'titular': seat['no_tarjeta'],
+        'seccion': seat['seccion'],
+        'fecha': str(seat['fecha_mov']),
+        'hora': seat['hora_mov'], 
+        'total': seat['total']
     }
 
 @flaskapp.route('/funciones/asientos-reservados-por-titular/<no_tarjeta>')
 def seats_by_titular(no_tarjeta):
-    funcionesResult = executeQuery('''SELECT * FROM asiento WHERE no_tarjeta = {}'''.format(no_tarjeta))
-    print("----->",format(no_tarjeta))
     funciones = []
-    for func in funcionesResult:
+    asiento = mongo.db.asiento
+    for func in asiento.find({'no_tarjeta':no_tarjeta}):
         funciones.append(buildSeatsReponse(func))
     return jsonify(funciones)
 
 @flaskapp.route('/funciones/eventos-por-id/<id_funcion>')
 def eventos_por_id(id_funcion):
-    funcionesResult = executeQuery('''SELECT * FROM funcion, evento WHERE evento.folio=funcion.folio and funcion.id = {}'''.format(id_funcion))
-    print("----->",format(id_funcion))
+    eventos = mongo.db.evento
     funciones = []
-    for func in funcionesResult:
-        funciones.append(buildFEReponse(func))
+		
+    for funcion in eventos.find({'funciones.id':int(id_funcion)}):
+        funciones.append(buildFEReponse(funcion, id_funcion))
+
     return jsonify(funciones)
 
 @flaskapp.route('/funciones/all-seats/<id_funcion>/<seccion>')
 def all_seats_by_section(id_funcion, seccion):
-    sql_code = '''SELECT * FROM asiento WHERE id_funcion = {}'''.format(id_funcion)+''' and seccion = '{}' '''.format(seccion)
-    funcionesResult = executeQuery(sql_code)
-    print(sql_code)
-    funciones = []
-    for func in funcionesResult:
-        funciones.append(buildSeatsReponse(func))
+    asiento = mongo.db.asiento
+    funciones = []    
+    for item in asiento.find({'id_funcion':int(id_funcion),'seccion':seccion}):
+        funciones.append(buildSeatsReponse(item))
     return jsonify(funciones)
 
 @flaskapp.route('/funciones/datos_eventos/<folio>')
@@ -110,29 +108,48 @@ def events_data(folio):
 
 @flaskapp.route('/funciones/preciosporevento/<folio>')
 def preciosAsientos(folio):
-    preciosResult = executeQuery('''SELECT * FROM precios_evento  WHERE folio_evento = {}'''.format(folio))
+    eventos = mongo.db.evento
     precios = []
-    for precio in preciosResult:
-        precios.append(buildPreciosResponse(precio))
+    for funcion in eventos.find({'folio': int(folio)}):
+        precios.append(buildPreciosResponse(funcion))    
     return jsonify(precios)
 
 
 @flaskapp.route('/funciones/save/<funcion_id>/<folio_artista>/<seccion>/<asientos>/<cardNumber>/<cardCvc>/<fecha_mov>/<hora_mov>/<total>')
 def guardarReservacion(funcion_id,folio_artista,seccion,asientos,cardNumber,cardCvc,fecha_mov, hora_mov, total):
-    conn = mysql.connect()
-    cursor = conn.cursor()
-    try:
-        query = '''INSERT INTO asiento VALUES ({},"{}","{}","{}","{}","{}",{})'''.format(funcion_id,asientos,cardNumber,seccion,fecha_mov, hora_mov,total)
-        print('Query:',query)
-        res = cursor.execute(query)
-        conn.commit()
-        print('Query:',query)
-        return jsonify(True)
+    asiento = mongo.db.asiento
+    asientosReservadosCount = 0
+    for fun in asiento.find({'id_funcion':int(funcion_id),'no_tarjeta':cardNumber}):
+        asientosReservadosCount += len(fun['asientos'].split(","))
+    asientosReservadosCount += len(asientos.split(","))
+    try:    
+        if asientosReservadosCount <=5:
+            mongo.db.asiento.insert({'id_funcion': int(funcion_id), 'asientos': asientos, 'no_tarjeta': cardNumber, 'seccion': seccion, 'fecha_mov': datetime.strptime(fecha_mov+"T05:00:00.000Z", "%Y-%m-%dT%H:%M:%S.000Z"), 'hora_mov':hora_mov, 'total': total})
+            return jsonify(True)
+        else:
+            print("Error. Cant insert seats, due user would reserve:",asientosReservadosCount)
+            return jsonify(False)
     except Exception as e:
         print("Error during insert:",str(e))
-        print("QUERY------------------------------------------------>",query)
         return jsonify(False)
 
+@flaskapp.route('/funciones/save_wpromo/<funcion_id>/<folio_artista>/<seccion>/<asientos>/<cardNumber>/<cardCvc>/<fecha_mov>/<hora_mov>/<total>/<num_promo>')
+def guardarReservacionConPromo(funcion_id,folio_artista,seccion,asientos,cardNumber,cardCvc,fecha_mov, hora_mov, total,num_promo):
+    asiento = mongo.db.asiento
+    asientosReservadosCount = 0
+    for fun in asiento.find({'id_funcion':int(funcion_id),'no_tarjeta':cardNumber}):
+        asientosReservadosCount += len(fun['asientos'].split(","))
+    asientosReservadosCount += len(asientos.split(","))
+    try:    
+        if asientosReservadosCount <=5:
+            mongo.db.asiento.insert({'id_funcion': int(funcion_id), 'asientos': asientos, 'no_tarjeta': cardNumber, 'seccion': seccion, 'fecha_mov': datetime.strptime(fecha_mov+"T05:00:00.000Z", "%Y-%m-%dT%H:%M:%S.000Z"), 'hora_mov':hora_mov, 'total': total})
+            return jsonify(True)
+        else:
+            print("Error. Cant insert seats, due user would reserve:",asientosReservadosCount)
+            return jsonify(False)
+    except Exception as e:
+        print("Error during insert:",str(e))
+        return jsonify(False)
 
 
 @flaskapp.route('/funciones/all')
@@ -144,7 +161,7 @@ def all_events():
     print(funciones)
     return jsonify(funciones)
 
-flaskapp.route('/funciones/get_folio/<id_funcion>')
+@flaskapp.route('/funciones/get_folio/<id_funcion>')
 def get_folio(id_funcion):
     sql_code = '''SELECT * FROM funcion WHERE id_funcion = {}'''.format(id_funcion)
     funcionesResult = executeQuery(sql_code)
@@ -154,15 +171,27 @@ def get_folio(id_funcion):
         funciones.append(buildFuncionReponse(func))
     return jsonify(funciones) 
 
-flaskapp.route('/funciones/get-datos/<no_tarjeta>')
+@flaskapp.route('/funciones/get-datos/<no_tarjeta>')
 def get_datos(no_tarjeta):
-    print("xD",no_tarjeta)
-    funcionesResult = executeQuery('''SELECT * FROM asiento, evento, funcion, precios_evento WHERE asiento.id_funcion=funcion.id and funcion.folio=evento.folio and evento.folio=precios_evento.folio_evento and asiento.no_tarjeta={}'''.format(no_tarjeta));
-    print("#########################################",funcionesResult)
     funciones = []
-    for funcion in funcionesResult:
-        funciones.append(buildMetasReponse(funcion))
-    print(funciones)
+    evento = mongo.db.evento
+    asiento = mongo.db.asiento
+
+    for asient in asiento.find({'no_tarjeta': no_tarjeta}):
+        for evt in evento.find({'funciones.id': int(asient['id_funcion'])}):
+            funciones.append(buildMetasReponse(asient, evt))
+
+    return jsonify(funciones)
+@flaskapp.route('/funciones/funciones-asociadas/<no_tarjeta>')
+def funciones_asociadas(no_tarjeta):
+    funciones = []
+    evento = mongo.db.evento
+    asiento = mongo.db.asiento
+
+    for asient in asiento.find({'no_tarjeta': no_tarjeta}):
+        for evt in evento.find({'funciones.id': int(asient['id_funcion'])}):
+            funciones.append(buildFuncionesAsociadasResponse(evt, asient))
+
     return jsonify(funciones)
 
 def appendHorariosToFunciones(funciones, horario):
@@ -197,38 +226,63 @@ def buildEventsReponse(events):
         'funciones': funciones
     } 
 
-def buildMetasReponse(events):
+def buildMetasReponse(asient, event):
+
+    for fun in event['funciones']:
+        if fun['id'] == int(asient['id_funcion']):
+            funcion = fun
+            break
+
     return {
-        'id_funcion': events[0],
-        'asientos': events[1],
-        'seccion': events[3],
-        'folio': events[4],
-        'nombre': events[5],
-        'artistas': events[6],
-        'fecha': str(events[11]),
-        'hora': str(events[12]),
+        'id_funcion': asient['id_funcion'],
+        'asientos': asient['asientos'],
+        'seccion': asient['seccion'],
+        'folio': event['folio'],
+        'nombre': event['nombre'],
+        'artistas': event['artistas'],
+        'fecha': str(fun['fecha']),
+        'hora': str(fun['hora']),
         'precios': {
-            'top': events[14],
-            'mid': events[15],
-            'low': events[16]					
+            'top': event['precios']['top'],
+            'mid': event['precios']['mid'],
+            'low': event['precios']['low']					
 		}
     } 
 
 def buildPreciosResponse(precios):
     return {
-        'folio_evento': precios[0],
-        'top': precios[1],
-        'mid': precios[2],
-        'low': precios[3]
+        'folio_evento': precios['folio'],
+        'top': precios['precios']['top'],
+        'mid': precios['precios']['mid'],
+        'low': precios['precios']['low']
     }
 
-def buildFEReponse(events):
+def buildFEReponse(events, id_funcion):
+    for fun in events['funciones']:
+        if fun['id'] == int(id_funcion):
+            funcion = fun
+            break
+
     return {
-        'id': events[0],
-        'folio': events[1],
-        'fecha': str(events[2]),
-        'hora': str(events[3]),
-        'nombre': events[5],
-        'artistas': events[6]
+        'id': funcion['id'],
+        'folio': events['folio'],
+        'fecha': str(funcion['fecha']),
+        'hora': str(funcion['hora']),
+        'nombre': events['nombre'],
+        'artistas': events['artistas']
+    }
+
+def buildFuncionesAsociadasResponse(events,asients):
+    for fun in events['funciones']:
+        if fun['id'] == int(asients['id_funcion']):
+            funcion = fun
+            break
+    return {
+        'nombre': str(events['nombre']),
+        'folio': events['folio'],
+        'fecha': str(fun['fecha']),
+        'hora': str(fun['hora']),
+        'no_tarjeta': str(asients['no_tarjeta']),
+        'id_funcion': fun['id']
     }
 
