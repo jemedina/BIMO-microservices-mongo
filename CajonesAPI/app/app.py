@@ -54,6 +54,7 @@ def buildCajonReponse(caj):
 
 @flaskapp.route('/cajones/cajones-ocupados/<id_funcion>')
 def cajones_ocupados(id_funcion):
+    print(str(id_funcion))
     parking = mongo.db.estacionamiento
     cajones = []
     for caj in parking.find({"id_funcion":int(id_funcion)}):
@@ -75,8 +76,9 @@ def cajones_ocupados(id_funcion):
 def cajones_por_titular(no_tarjeta):
     parking = mongo.db.estacionamiento
     cajones = []
-    for caj in  parking.find({"no_tarjeta":int(no_tarjeta)}):
-        cajones.append({'no_tarjeta': int(caj['no_tarjeta']),'id_funcion': int(caj['id_funcion']),'num_cajon': int(caj['num_cajon'])})
+    print(parking.find({"no_tarjeta":str(no_tarjeta)}))
+    for caj in  parking.find({"no_tarjeta":str(no_tarjeta)}):
+        cajones.append({'no_tarjeta': str(caj['no_tarjeta']),'id_funcion': int(caj['id_funcion']),'num_cajon': int(caj['num_cajon'])})
     return jsonify(cajones)
     
 #@flaskapp.route('/cajones/add/<id_funcion>/<no_tarjeta>/<num_cajon>')

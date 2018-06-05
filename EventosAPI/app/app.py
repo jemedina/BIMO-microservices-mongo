@@ -140,6 +140,27 @@ def guardarReservacion(funcion_id,folio_artista,seccion,asientos,cardNumber,card
         print("Error during insert:",str(e))
         return jsonify(False)
 
+@flaskapp.route('/funciones/elimina-Evento/<folio>/<id_funcion>')
+def eliminaFuncion(folio,id_funcion):
+    evento = mongo.db.evento
+    #evento.update_one({'folio':int(folio)},{'$pull':{'funciones':{'id':int(id_funcion)}})
+    evento.update_one({'folio':int(folio)},{'$pull':{'funciones':{'id':int(id_funcion)}}})
+    return 'OK'
+
+@flaskapp.route('/funciones/alta-funcion/<folio>/<id_funcion>/<fecha>/<horario>')
+def altaFuncion(folio,id_funcion,fecha,horario):
+    evento = mongo.db.evento
+    evento.update_one({'folio':int(folio)},{'$push':{'funciones':{'id':int(id_funcion),'fecha':str(fecha),'hora':str(horario)}}},upsert=True)    
+    return 'OK'
+
+@flaskapp.route('/funciones/cambio-funcion/<folio>/<id_funcion>/<fecha>/<horario>')
+def cambioFuncion(folio,id_funcion,fecha,horario):
+    evento = mongo.db.evento
+    evento.update_one({'folio':int(folio),'funciones.id':int(id_funcion)},{'$set':{'funciones':{'id':int(id_funcion),'fecha':str(fecha),'hora':str(horario)}}},upsert=True)    
+    return 'OK'
+
+
+
 @flaskapp.route('/funciones/save_wpromo/<funcion_id>/<folio_artista>/<seccion>/<asientos>/<cardNumber>/<cardCvc>/<fecha_mov>/<hora_mov>/<total>/<num_promo>')
 def guardarReservacionConPromo(funcion_id,folio_artista,seccion,asientos,cardNumber,cardCvc,fecha_mov, hora_mov, total,num_promo):
     asiento = mongo.db.asiento

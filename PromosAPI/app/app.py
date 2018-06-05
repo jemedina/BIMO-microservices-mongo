@@ -20,6 +20,13 @@ def buildPromoReponse(promo):
         'descuento': float(promo['descuento'])
     }
 
+@flaskapp.route('/promos/cambio-promo/<no_promo>/<descrip>/<f_inicio>/<f_final>/<descuento>')
+
+def cambioPromo(no_promo, descrip, f_inicio, f_final, descuento):
+    promo = mongo.db.promocion
+    promo.update_one({'num_promo':int(no_promo)},{'$set':{'descripcion':str(descrip),'fecha_inicio':str(f_inicio), 'fecha_fin':str(f_final), 'descuento':float(descuento)}},upsert=True)    
+    return 'OK'
+
 @flaskapp.route('/promos/all')
 def all_promos():
 	promocion = mongo.db.promocion
@@ -36,11 +43,12 @@ def formato(f):
 
 
 
+
 def start():
     config = GlobalConfiguration()
 
-    flaskapp.config['MONGO_DBNAME'] = 'prueba_db'
-    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/prueba_db'
+    flaskapp.config['MONGO_DBNAME'] = 'bimo'
+    flaskapp.config['MONGO_URI'] = 'mongodb://localhost:27017/bimo'
     global mongo 
     mongo = PyMongo(flaskapp, config_prefix='MONGO')
 
