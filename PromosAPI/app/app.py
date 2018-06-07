@@ -32,7 +32,7 @@ def all_promos():
 	promocion = mongo.db.promocion
 	promos = []
 	for promo in promocion.find():
-		promos.append({'num_promo': int(promo['num_promo']),'folio': int(promo['folio']),'descripcion': promo['descripcion'],'fecha_inicio': promo['fecha_inicio'],'fecha_fin': promo['fecha_fin'],'descuento': float(promo['descuento'])})
+		promos.append({'num_promo': int(promo['num_promo']),'folio': int(promo['folio']),'descripcion': promo['descripcion'],'fecha_inicio': formato(promo['fecha_inicio']),'fecha_fin': formato(promo['fecha_fin']),'descuento': float(promo['descuento'])})
 	return jsonify(promos)
 
 
