@@ -43,6 +43,11 @@ def apply_caching(response):
     response.headers["Access-Control-Allow-Origin'"] = "*"
     return response
 
+@flaskapp.route('/funciones/addfuncion/<folio>/<id_funcion>/<fecha>/<hora>')
+def addfuncion(folio, id_funcion, fecha, hora):
+    mongo.db.evento.find_one_and_update({'folio':int(folio)}, {'$push': {'funciones': {'id':int(id_funcion), 'fecha': datetime.strptime(fecha+"T05:00:00.000Z", "%Y-%m-%dT%H:%M:%S.000Z"), 'hora': hora}}})
+    return jsonify(True)
+
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
     funcionesResult = executeQuery('''SELECT precio FROM asiento WHERE num_asiento = {}'''.format(num_asiento),''' and folio = {}'''.format(folio),''' and fecha = {}'''.format(fecha),''' and hora = {}'''.format(hora),''' and seccion = {}'''.format(seccion))
