@@ -48,6 +48,11 @@ def addfuncion(folio, id_funcion, fecha, hora):
     mongo.db.evento.find_one_and_update({'folio':int(folio)}, {'$push': {'funciones': {'id':int(id_funcion), 'fecha': datetime.strptime(fecha+"T05:00:00.000Z", "%Y-%m-%dT%H:%M:%S.000Z"), 'hora': hora}}})
     return jsonify(True)
 
+@flaskapp.route('/funciones/delfuncion/<folio>/<id_funcion>')
+def delfuncion(folio, id_funcion):
+    mongo.db.evento.find_one_and_update({'folio':int(folio)},{'$pull':{'funciones':{'id':int(id_funcion)}}})
+    return jsonify(True)
+
 @flaskapp.route('/funciones/precio/<num_asiento>/<seccion>/<folio>/<fecha>/<hora>')
 def price_by_num_asiento(num_asiento,seccion, folio, fecha, hora):
     funcionesResult = executeQuery('''SELECT precio FROM asiento WHERE num_asiento = {}'''.format(num_asiento),''' and folio = {}'''.format(folio),''' and fecha = {}'''.format(fecha),''' and hora = {}'''.format(hora),''' and seccion = {}'''.format(seccion))
@@ -78,7 +83,7 @@ def buildSeatsReponse(seat):
         'asientos': seat['asientos'],
         'titular': seat['no_tarjeta'],
         'seccion': seat['seccion'],
-        'fecha': str(seat['fecha_mov']),
+        'fecha': formatearFecha(seat['fecha_mov']),
         'hora': seat['hora_mov'], 
         'total': seat['total']
     }
@@ -145,13 +150,6 @@ def guardarReservacion(funcion_id,folio_artista,seccion,asientos,cardNumber,card
         print("Error during insert:",str(e))
         return jsonify(False)
 
-@flaskapp.route('/funciones/elimina-Evento/<folio>/<id_funcion>')
-def eliminaFuncion(folio,id_funcion):
-    evento = mongo.db.evento
-    #evento.update_one({'folio':int(folio)},{'$pull':{'funciones':{'id':int(id_funcion)}})
-    evento.update_one({'folio':int(folio)},{'$pull':{'funciones':{'id':int(id_funcion)}}})
-    return 'OK'
-
 @flaskapp.route('/funciones/alta-funcion/<folio>/<id_funcion>/<fecha>/<horario>')
 def altaFuncion(folio,id_funcion,fecha,horario):
     evento = mongo.db.evento
@@ -161,7 +159,7 @@ def altaFuncion(folio,id_funcion,fecha,horario):
 @flaskapp.route('/funciones/cambio-funcion/<folio>/<id_funcion>/<fecha>/<horario>')
 def cambioFuncion(folio,id_funcion,fecha,horario):
     evento = mongo.db.evento
-    evento.update_one({'folio':int(folio),'funciones.id':int(id_funcion)},{'$set':{'funciones':{'id':int(id_funcion),'fecha':str(fecha),'hora':str(horario)}}},upsert=True)    
+    evento.update_one({'folio':int(folio),'funciones.id':int(id_funcion)},{'$set':{'funciones.$':{'id':int(id_funcion),'fecha':datetime.strptime(fecha+"T05:00:00.000Z", "%Y-%m-%dT%H:%M:%S.000Z"),'hora':str(horario)}}},upsert=True)    
     return 'OK'
 
 
@@ -189,7 +187,7 @@ def guardarReservacionConPromo(funcion_id,folio_artista,seccion,asientos,cardNum
 def all_events():
     eventos = mongo.db.evento
     funciones = []
-    for funcion in eventos.find():
+    for funcion in eventos.find().sort([('folio',1)]):
         funciones.append(buildEventsReponse(funcion))
     print(funciones)
     return jsonify(funciones)
@@ -299,7 +297,7 @@ def buildFEReponse(events, id_funcion):
     return {
         'id': funcion['id'],
         'folio': events['folio'],
-        'fecha': str(funcion['fecha']),
+        'fecha': formatearFecha(funcion['fecha']),
         'hora': str(funcion['hora']),
         'nombre': events['nombre'],
         'artistas': events['artistas']
@@ -313,7 +311,7 @@ def buildFuncionesAsociadasResponse(events,asients):
     return {
         'nombre': str(events['nombre']),
         'folio': events['folio'],
-        'fecha': str(fun['fecha']),
+        'fecha': formatearFecha(fun['fecha']),
         'hora': str(fun['hora']),
         'no_tarjeta': str(asients['no_tarjeta']),
         'id_funcion': fun['id']
